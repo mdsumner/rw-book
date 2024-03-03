@@ -1,0 +1,30 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "rw-book",
+    "section": "",
+    "text": "Preface\nThis is a Quarto book about geospatial data structures in R and Python (and other languages).\nThe book started with the idea that there is a fundamental value in the concept of a regular grid and that, sadly, this does not have a natural low-entropy expression in some modern scientific array formats, and sadder again, that this has affected a very influential and powerful software package."
+  },
+  {
+    "objectID": "intro.html",
+    "href": "intro.html",
+    "title": "1  Introduction",
+    "section": "",
+    "text": "This is a book about gridded data which includes scientific arrays, imagery, earth observation data, and model output.\nWe will explore ease of use and redundancy in software and try to draw some seemingly incongruous threads and topics together in R and other languages."
+  },
+  {
+    "objectID": "r-image.html",
+    "href": "r-image.html",
+    "title": "2  R and image",
+    "section": "",
+    "text": "Base R has since at least 1998 had the volcano dataset (a 61x87 matrix of integer heights from Mauna Whau) and the image() function.\nThe image() function takes matrix and draws it by mapping a numerical value in matrix elements to a colour intensity on the screen.\n\nimage(volcano)\n\n\n\n\nNo georeferencing information is included with the dataset other than that it was hand digitized from a map and that the pixel size is 10m either side. If you know what Mauna Whau usually looks like on a north-up map you’ll know that it seems rotated (90 degrees clockwise) from that.\nWe know that the dataset has extent 2667400, 2668010, 6478700, 6479570 (xmin, xmax, ymin, ymax) on New Zealand Map Grid (NZGD49 / New Zealand Map Grid (EPSG:27200)).\nTo plot with image() we must generate the 1D-coord arrays that position the matrix in this extent.\n\nex &lt;- c(2667400, 2668010, 6478700, 6479570)\nxs &lt;- seq(ex[1L], ex[2L], length.out = 61L + 1L)\nys &lt;- seq(ex[3L], ex[4L], length.out = 87L + 1L)\nimage(xs, ys, t(volcano[,  61:1]), asp = 1)\n\n\n\n\nWe know this is correct, but we’ll prove it also by obtaining some imagery data from online and overplotting our volcano dataset.\n\nlibrary(ximage)\nlibrary(whatarelief)\nim &lt;- imagery(extent = ex, dimension = c(610L, 870L), projection = \"EPSG:27200\")\nximage(im, ex, asp = 1)\nxc &lt;- xs[-length(xs)] + diff(xs[1:2])/2\nyc &lt;- ys[-length(xs)] + diff(ys[1:2])/2\ncontour(xc, yc, t(volcano[,  61:1]), add = TRUE, col = \"hotpink\")\n\n\n\n\nNote here that we have had to convert from referencing to the edges of the pixels to referencing to the centres for using contour. This is an inconsistency deep in R itself, and is just one example of problems that inspired the topic of this book."
+  },
+  {
+    "objectID": "summary.html",
+    "href": "summary.html",
+    "title": "3  Summary",
+    "section": "",
+    "text": "In summary, this book has no content whatsoever.\n\n1 + 1\n\n[1] 2"
+  }
+]

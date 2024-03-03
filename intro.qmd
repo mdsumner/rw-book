@@ -1,0 +1,10 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+# Introduction
+
+This is a book about gridded data which includes scientific arrays, imagery, earth observation data, and model output. 
+
+We will explore ease of use and redundancy in software and try to draw some seemingly incongruous threads and topics together in R and other languages. 

@@ -1,0 +1,9 @@
+# Preface {.unnumbered}
+
+This is a Quarto book about geospatial data structures in R and Python (and
+other languages).
+
+The book started with the idea that there is a fundamental value in the concept
+of a *regular grid* and that, sadly, this does not have a natural low-entropy
+expression in some modern scientific array formats, and sadder again, that this
+has affected a very influential and powerful software package.
