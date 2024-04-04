@@ -1,0 +1,350 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# A geospatial dataset in NetCDF
+
+GHRSST is a high resolution globally-complete oceanographic dataset of sea surface temperature. It is strictly a 2d product, published daily since July 2002 and records temperature in Kelvin at the ocean surface, a blended product of observations, satellite data, and models. The dimension of the grid in pixels is 36000x17999. The storage format is NetCDF, with 'time' as an unlimited dimension recorded in the file - each file has a single 3D time step in the typical way that NetCDF includes and "UNLIMITED" dimension that will be appended to continually in future. 
+
+GHRSST has a bit of a broken grid, the coordinates are degenerate rectilinear (i.e. completely described by the grid in xmin,xmax,ymin,ymax and the dimensions 36000x17999 but they store the longitude and latitude 1D coordinate arrays materalized as 32-bit floating point with resultant noise). It's not clear how the grid should be aligned exactly, and the metadata attributes list -180,180, -90,90 as the valid range but this can't be correct at 0.01 degree resolution for that size grid). 
+
+See the (ncdump -h listed below). 
+
+
+
+
+
+```{r}
+## replace this local file with the one at the new earthdata store commented out (but you need your earthdata creds, or Authorization Bearer token)
+ncsrc <- "/rdsi/PUBLIC/raad/data/podaac-opendap.jpl.nasa.gov/opendap/allData/ghrsst/data/GDS2/L4/GLOB/JPL/MUR/v4.1/2002/152/20020601090000-JPL-L4_GHRSST-SSTfnd-MUR-GLOB-v02.0-fv04.1.nc"
+## https://cmr.earthdata.nasa.gov/virtual-directory/collections/C1996881146-POCLOUD/temporal/2002/05/31
+## https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-protected/MUR-JPL-L4-GLOB-v4.1/20020601090000-JPL-L4_GHRSST-SSTfnd-MUR-GLOB-v02.0-fv04.1.nc
+
+## read the lon,lat 1D arrays from the file (every file stores these 36000 lons and 17999 lats with ostensibly 0.01 spacing
+library(RNetCDF)
+con <- open.nc(ncsrc)
+
+lat <- var.get.nc(con, "lat")
+lon <- var.get.nc(con, "lon")
+close.nc(con)
+
+## weirdly right-edge aligned
+print(range(lon))
+
+## these are ok, but we miss half a cell from -90/90 (hence the 17999 thing, but why did they do that?)
+print(range(lat))
+
+## there's noise in the values
+plot(diff(lon), pch = ".")
+format(range(diff(lon)), digits = 16)
+
+## and it's way more noise than in Float64
+points(diff(fixlon <- seq(-179.995, 179.995, by = 0.01)), pch = ".",  col = "red")
+```
+
+
+```{r}
+format(range(diff(fixlon)), digits = 16)
+
+range(fixlon); length(fixlon)
+
+
+gdalex <- vapour::vapour_raster_info(sprintf("NetCDF:%s:analysed_sst", ncsrc))$extent
+
+fixex <- c(-180, -180, -89.995, 89.995)
+
+## ewk
+format(gdalex, digits = 16)
+
+```
+
+Now we plot the points - see description above the figure. 
+
+
+
+```{r}
+
+par(mfrow = c(2, 2))
+
+## UL --------------------------------------------------------------------------
+plot(NA, xlim = c(-180, -179.95), ylim = c(89.95, 90), asp = 1, xlab = "lon", ylab = "lat")
+title("UL: upper left")
+
+abline(v = -180, h = 90)
+abline(h = fixex[3:4], lty =  2)
+points(expand.grid(head(lon), tail(lat)))
+vaster::plot_extent(gdalex, border = "red", add = TRUE)
+
+
+## UR --------------------------------------------------------------------------
+plot(NA, xlim = c(179.95, 180), ylim = c(89.95, 90), asp = 1, xlab = "lon", ylab = "lat")
+title("UR: upper right")
+
+abline(v = 180, h = 90)
+abline(h = fixex[3:4], lty =  2)
+points(expand.grid(tail(lon), tail(lat)))
+vaster::plot_extent(gdalex, border = "red", add = TRUE)
+## LL --------------------------------------------------------------------------
+plot(NA, xlim = c(-180, -179.95), ylim = c(-90, -89.95), asp = 1, xlab = "lon", ylab = "lat")
+title("LL: lower left")
+
+abline(v = -180, h = -90)
+abline(h = fixex[3:4], lty =  2)
+points(expand.grid(head(lon), head(lat)))
+vaster::plot_extent(gdalex, border = "red", add = TRUE)
+## LR --------------------------------------------------------------------------
+plot(NA, xlim = c(179.95, 180), ylim = c(-90, -89.95), asp = 1, xlab = "lon", ylab = "lat")
+abline(v = 180, h = -90)
+title("LR: lower right")
+
+abline(h = fixex[3:4], lty =  2)
+points(expand.grid(tail(lon), head(lat)))
+vaster::plot_extent(gdalex, border = "red", add = TRUE, xlab = "lon", ylab = "lat")
+```
+
+
+
+These points are the implicit pairs by expanding lon,lat from the file and compare what GDAL derives as the extent (red), and the vertical black lines is -180,180,-90,90. 
+The hatched line is what we think should be assigned (an implicit missing row, split half at the top and bottom) - close enough to GDAL but with the longitude fixed and the extent made tidy (resolution 0.01, aligned to 0). 
+
+## A fix?
+
+to fix all that up for a GDAL reader I do
+
+```
+'vrt://{ncsrc}?a_ullr=-180,89.995,180,-89.995&a_srs=EPSG:4326&a_offset=25&a_scale=0.001&sd_name=analysed_sst'
+```
+
+the a_scale/offset mean we get Celsius from the Int16 rather than Fahrenheit, the a_ullr fixes the regular extent and avoids all the numeric fuzz and redundancy of the lon,lat arrays, sd_name means we don't need the 'NETCDF:dsn:variable' prefix:suffix stuff for the GDAL subdataset (but only since GDAL 3.9.0), and a_srs means we can churn through the warper for lovely new grids of any extent and dimension and crs we like.
+
+
+Another option would be to specify a target grid and let GDAL warp from the geolocation arrays. 
+
+## Geolocation arrays
+
+gdalinfo on the file reports
+
+```{r}
+system(sprintf("gdalinfo %s", ncsrc))
+
+```
+
+The the GEOLOCATION section, it knows about those 1D arrays. 
+
+So then we can do 
+
+subdataset
+modify metadata
+specify grid and resample method 
+
+```{r warp, eval=FALSE}
+system(sprintf("gdalwarp %s ghrsst.tif", nsrc))
+## Netcdf summary
+
+
+```
+
+
+`ncdump -sh`
+
+```
+netcdf \20020601090000-JPL-L4_GHRSST-SSTfnd-MUR-GLOB-v02.0-fv04.1 {
+dimensions:
+	time = 1 ;
+	lat = 17999 ;
+	lon = 36000 ;
+variables:
+	int time(time) ;
+		time:long_name = "reference time of sst field" ;
+		time:standard_name = "time" ;
+		time:axis = "T" ;
+		time:units = "seconds since 1981-01-01 00:00:00 UTC" ;
+		time:comment = "Nominal time of analyzed fields" ;
+		time:_Storage = "contiguous" ;
+		time:_Endianness = "little" ;
+	float lat(lat) ;
+		lat:long_name = "latitude" ;
+		lat:standard_name = "latitude" ;
+		lat:axis = "Y" ;
+		lat:units = "degrees_north" ;
+		lat:valid_min = -90.f ;
+		lat:valid_max = 90.f ;
+		lat:comment = "none" ;
+		lat:_Storage = "chunked" ;
+		lat:_ChunkSizes = 17999 ;
+		lat:_DeflateLevel = 7 ;
+		lat:_Shuffle = "true" ;
+		lat:_Endianness = "little" ;
+	float lon(lon) ;
+		lon:long_name = "longitude" ;
+		lon:standard_name = "longitude" ;
+		lon:axis = "X" ;
+		lon:units = "degrees_east" ;
+		lon:valid_min = -180.f ;
+		lon:valid_max = 180.f ;
+		lon:comment = "none" ;
+		lon:_Storage = "chunked" ;
+		lon:_ChunkSizes = 36000 ;
+		lon:_DeflateLevel = 7 ;
+		lon:_Shuffle = "true" ;
+		lon:_Endianness = "little" ;
+	short analysed_sst(time, lat, lon) ;
+		analysed_sst:long_name = "analysed sea surface temperature" ;
+		analysed_sst:standard_name = "sea_surface_foundation_temperature" ;
+		analysed_sst:units = "kelvin" ;
+		analysed_sst:_FillValue = -32768s ;
+		analysed_sst:add_offset = 298.15 ;
+		analysed_sst:scale_factor = 0.001 ;
+		analysed_sst:valid_min = -32767s ;
+		analysed_sst:valid_max = 32767s ;
+		analysed_sst:comment = "\"Final\" version using Multi-Resolution Variational Analysis (MRVA) method for interpolation" ;
+		analysed_sst:coordinates = "lon lat" ;
+		analysed_sst:source = "AMSRE-REMSS, AVHRR_Pathfinder-PFV5.2-NODC_day, AVHRR_Pathfinder-PFV5.2-NODC_night, MODIS_T-JPL, iQUAM-NOAA/NESDIS, Ice_Conc-OSISAF" ;
+		analysed_sst:_Storage = "chunked" ;
+		analysed_sst:_ChunkSizes = 1, 1023, 2047 ;
+		analysed_sst:_DeflateLevel = 7 ;
+		analysed_sst:_Shuffle = "true" ;
+		analysed_sst:_Endianness = "little" ;
+	short analysis_error(time, lat, lon) ;
+		analysis_error:long_name = "estimated error standard deviation of analysed_sst" ;
+		analysis_error:units = "kelvin" ;
+		analysis_error:_FillValue = -32768s ;
+		analysis_error:add_offset = 0. ;
+		analysis_error:scale_factor = 0.01 ;
+		analysis_error:valid_min = 0s ;
+		analysis_error:valid_max = 32767s ;
+		analysis_error:comment = "none" ;
+		analysis_error:coordinates = "lon lat" ;
+		analysis_error:_Storage = "chunked" ;
+		analysis_error:_ChunkSizes = 1, 1023, 2047 ;
+		analysis_error:_DeflateLevel = 7 ;
+		analysis_error:_Shuffle = "true" ;
+		analysis_error:_Endianness = "little" ;
+	byte mask(time, lat, lon) ;
+		mask:long_name = "sea/land field composite mask" ;
+		mask:_FillValue = -128b ;
+		mask:valid_min = 1b ;
+		mask:valid_max = 31b ;
+		mask:flag_masks = 1b, 2b, 4b, 8b, 16b ;
+		mask:flag_values = 1b, 2b, 5b, 9b, 13b ;
+		mask:flag_meanings = "1=open-sea, 2=land, 5=open-lake, 9=open-sea with ice in the grid, 13=open-lake with ice in the grid" ;
+		mask:comment = "mask can be used to further filter the data." ;
+		mask:coordinates = "lon lat" ;
+		mask:source = "GMT \"grdlandmask\", ice flag from sea_ice_fraction data" ;
+		mask:_Storage = "chunked" ;
+		mask:_ChunkSizes = 1, 1447, 2895 ;
+		mask:_DeflateLevel = 7 ;
+		mask:_Shuffle = "true" ;
+	byte sea_ice_fraction(time, lat, lon) ;
+		sea_ice_fraction:long_name = "sea ice area fraction" ;
+		sea_ice_fraction:standard_name = "sea ice area fraction" ;
+		sea_ice_fraction:units = "fraction (between 0 and 1)" ;
+		sea_ice_fraction:_FillValue = -128b ;
+		sea_ice_fraction:add_offset = 0. ;
+		sea_ice_fraction:scale_factor = 0.01 ;
+		sea_ice_fraction:valid_min = 0b ;
+		sea_ice_fraction:valid_max = 100b ;
+		sea_ice_fraction:source = "EUMETSAT OSI-SAF, copyright EUMETSAT" ;
+		sea_ice_fraction:comment = "ice data interpolated by a nearest neighbor approach." ;
+		sea_ice_fraction:coordinates = "lon lat" ;
+		sea_ice_fraction:_Storage = "chunked" ;
+		sea_ice_fraction:_ChunkSizes = 1, 1447, 2895 ;
+		sea_ice_fraction:_DeflateLevel = 7 ;
+		sea_ice_fraction:_Shuffle = "true" ;
+
+// global attributes:
+		:Conventions = "CF-1.5" ;
+		:title = "Daily MUR SST, Final product" ;
+		:summary = "A merged, multi-sensor L4 Foundation SST analysis product from JPL." ;
+		:references = "http://podaac.jpl.nasa.gov/Multi-scale_Ultra-high_Resolution_MUR-SST" ;
+		:institution = "Jet Propulsion Laboratory" ;
+		:history = "created at nominal 4-day latency; replaced nrt (1-day latency) version." ;
+		:comment = "MUR = \"Multi-scale Ultra-high Reolution\"" ;
+		:license = "These data are available free of charge under data policy of JPL PO.DAAC." ;
+		:id = "MUR-JPL-L4-GLOB-v04.1" ;
+		:naming_authority = "org.ghrsst" ;
+		:product_version = "04.1" ;
+		:uuid = "27665bc0-d5fc-11e1-9b23-0800200c9a66" ;
+		:gds_version_id = "2.0" ;
+		:netcdf_version_id = "4.1" ;
+		:date_created = "20150819T103929Z" ;
+		:start_time = "20020601T090000Z" ;
+		:stop_time = "20020601T090000Z" ;
+		:time_coverage_start = "20020531T210000Z" ;
+		:time_coverage_end = "20020601T210000Z" ;
+		:file_quality_level = "1" ;
+		:source = "AMSRE-REMSS, AVHRR_Pathfinder-PFV5.2-NODC_day, AVHRR_Pathfinder-PFV5.2-NODC_night, MODIS_T-JPL, iQUAM-NOAA/NESDIS, Ice_Conc-OSISAF" ;
+		:platform = "Aqua, DMSP, NOAA-POES, Suomi-NPP, Terra" ;
+		:sensor = "AMSR-E, AVHRR, MODIS, SSM/I, VIIRS, in-situ" ;
+		:Metadata_Conventions = "Unidata Observation Dataset v1.0" ;
+		:metadata_link = "http://podaac.jpl.nasa.gov/ws/metadata/dataset/?format=iso&shortName=MUR-JPL-L4-GLOB-v04.1" ;
+		:keywords = "Oceans > Ocean Temperature > Sea Surface Temperature" ;
+		:keywords_vocabulary = "NASA Global Change Master Directory (GCMD) Science Keywords" ;
+		:standard_name_vocabulary = "NetCDF Climate and Forecast (CF) Metadata Convention" ;
+		:southernmost_latitude = -90.f ;
+		:northernmost_latitude = 90.f ;
+		:westernmost_longitude = -180.f ;
+		:easternmost_longitude = 180.f ;
+		:spatial_resolution = "0.01 degrees" ;
+		:geospatial_lat_units = "degrees north" ;
+		:geospatial_lat_resolution = "0.01 degrees" ;
+		:geospatial_lon_units = "degrees east" ;
+		:geospatial_lon_resolution = "0.01 degrees" ;
+		:acknowledgment = "Please acknowledge the use of these data with the following statement:  These data were provided by JPL under support by NASA MEaSUREs program." ;
+		:creator_name = "JPL MUR SST project" ;
+		:creator_email = "ghrsst@podaac.jpl.nasa.gov" ;
+		:creator_url = "http://mur.jpl.nasa.gov" ;
+		:project = "NASA Making Earth Science Data Records for Use in Research Environments (MEaSUREs) Program" ;
+		:publisher_name = "GHRSST Project Office" ;
+		:publisher_url = "http://www.ghrsst.org" ;
+		:publisher_email = "ghrsst-po@nceo.ac.uk" ;
+		:processing_level = "L4" ;
+		:cdm_data_type = "grid" ;
+		:_SuperblockVersion = 2 ;
+		:_IsNetcdf4 = 1 ;
+		:_Format = "netCDF-4" ;
+```
+
+## Demonstration of the Float32 precision problem
+
+Essentially floating point numbers struggle with precision for longitude and latitude (we might rescale closer to integers, but that's tricky for metadata). 
+
+to bring home the point about the single precision (I think this is right, appreciate if anyone points out a mistake or misunderstanding)
+
+Generate the coord values first in double precision, then in single (in R we have to return doubles, but the calc is done in float for the second one).
+
+```{r float32}
+library(cpp11)
+cpp_function('
+doubles coord64(double start, int len, double step) {
+   writable::doubles out = writable::doubles(len); 
+   for (int i = 0; i < len; i++) {
+     out[i] = start + i * step; 
+   }
+   return out ;
+}
+             ')
+
+range(lon64 <- coord64(-179.99, 36000, 0.01))
+format(range(diff(lon64)), digits = 16)
+range(lat64 <- coord64(-89.99, 17999, 0.01))
+format(range(diff(lat64)), digits = 16)
+
+cpp_function('
+
+doubles coord32(float start, int len, float step) {
+  writable::doubles out = writable::doubles(len); 
+  for (int i = 0; i < len; i++) {
+    out[i] = start + i * step; 
+  }
+  return out ;
+}
+')
+
+range(lon32 <- coord32(-179.99, 36000, 0.01))
+format(range(diff(lon32)), digits = 16)
+range(lat32 <- coord32(-89.99, 17999, 0.01))
+format(range(diff(lat32)), digits = 16)
+```

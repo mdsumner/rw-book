@@ -64,7 +64,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<link href="./summary.html" rel="next">
+<link href="./ghrsst-netcdf.html" rel="next">
 <link href="./intro.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
@@ -153,8 +153,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./ghrsst-netcdf.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">A geospatial dataset in NetCDF</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./summary.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Summary</span></span></a>
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Summary</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -199,9 +205,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><img src="r-image_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
-<p>No georeferencing information is included with the dataset other than that it was hand digitized from a map and that the pixel size is 10m either side. If you know what Mauna Whau usually looks like on a north-up map you’ll know that it seems rotated (90 degrees clockwise) from that.</p>
+<p>No georeferencing information is included with the dataset other than that it was hand digitized from a map and that the pixel size is 10m either side. So in this plot there is 870 in the x direction, and 610m in the y direction but here <code>image()</code> defaults to the unit square (which is shame because we have lost all sense of the aspect ratio). Also if you know what Mauna Whau usually looks like on a north-up map you’ll know that it seems rotated (90 degrees clockwise) from that.</p>
 <p>We know that the dataset has extent 2667400, 2668010, 6478700, 6479570 (xmin, xmax, ymin, ymax) on New Zealand Map Grid (NZGD49 / New Zealand Map Grid (EPSG:27200)).</p>
-<p>To plot with image() we must generate the 1D-coord arrays that position the matrix in this extent.</p>
+<p>To plot with <code>image()</code> we must generate the 1D-coord arrays that position the matrix in this extent.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ex <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">2667400</span>, <span class="dv">2668010</span>, <span class="dv">6478700</span>, <span class="dv">6479570</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>xs <span class="ot">&lt;-</span> <span class="fu">seq</span>(ex[1L], ex[2L], <span class="at">length.out =</span> 61L <span class="sc">+</span> 1L)</span>
@@ -224,7 +230,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><img src="r-image_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
-<p>Note here that we have had to convert from referencing to the edges of the pixels to referencing to the centres for using contour. This is an inconsistency deep in R itself, and is just one example of problems that inspired the topic of this book.</p>
+<p>Note here that we have had to convert from referencing to the edges of the pixels to referencing to the centres for using contour. This is an inconsistency deep in R itself, and is just one example of the complex of problems that inspired the topic of this book.</p>
 
 
 
@@ -469,8 +475,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./summary.html" class="pagination-link">
-        <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Summary</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="./ghrsst-netcdf.html" class="pagination-link">
+        <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">A geospatial dataset in NetCDF</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

@@ -9,6 +9,7 @@ book:
     - index.qmd
     - intro.qmd
     - r-image.qmd
+    - ghrsst-netcdf.qmd
     - summary.qmd
     - references.qmd
 
@@ -17,8 +18,8 @@ bibliography: references.bib
 format:
   html:
     theme: cosmo
-  pdf:
-    documentclass: scrreprt
+#  pdf:
+#    documentclass: scrreprt
 
 
 
