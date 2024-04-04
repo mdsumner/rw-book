@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>ghrsst-netcdf</title>
+<title>rw-book - 3&nbsp; A geospatial dataset in NetCDF</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -58,11 +58,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
 <script src="site_libs/clipboard/clipboard.min.js"></script>
 <script src="site_libs/quarto-search/autocomplete.umd.js"></script>
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
+<link href="./summary.html" rel="next">
+<link href="./r-image.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -96,21 +99,112 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 </head>
 
-<body class="fullcontent">
+<body class="nav-sidebar floating">
 
 <div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./ghrsst-netcdf.html"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">A geospatial dataset in NetCDF</span></a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
 <!-- content -->
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
 <!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">rw-book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Introduction</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-image.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">R and image</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ghrsst-netcdf.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">A geospatial dataset in NetCDF</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./summary.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Summary</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
 <!-- margin-sidebar -->
-    
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#a-fix" id="toc-a-fix" class="nav-link active" data-scroll-target="#a-fix"><span class="header-section-number">3.1</span> A fix?</a></li>
+  <li><a href="#geolocation-arrays" id="toc-geolocation-arrays" class="nav-link" data-scroll-target="#geolocation-arrays"><span class="header-section-number">3.2</span> Geolocation arrays</a></li>
+  <li><a href="#demonstration-of-the-float32-precision-problem" id="toc-demonstration-of-the-float32-precision-problem" class="nav-link" data-scroll-target="#demonstration-of-the-float32-precision-problem"><span class="header-section-number">3.3</span> Demonstration of the Float32 precision problem</a></li>
+  </ul>
+</nav>
+    </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">A geospatial dataset in NetCDF</span></h1>
+</div>
 
 
-<section id="a-geospatial-dataset-in-netcdf" class="level1">
-<h1>A geospatial dataset in NetCDF</h1>
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
 <p>GHRSST is a high resolution globally-complete oceanographic dataset of sea surface temperature. It is strictly a 2d product, published daily since July 2002 and records temperature in Kelvin at the ocean surface, a blended product of observations, satellite data, and models. The dimension of the grid in pixels is 36000x17999. The storage format is NetCDF, with ‘time’ as an unlimited dimension recorded in the file - each file has a single 3D time step in the typical way that NetCDF includes and “UNLIMITED” dimension that will be appended to continually in future.</p>
 <p>GHRSST has a bit of a broken grid, the coordinates are degenerate rectilinear (i.e.&nbsp;completely described by the grid in xmin,xmax,ymin,ymax and the dimensions 36000x17999 but they store the longitude and latitude 1D coordinate arrays materalized as 32-bit floating point with resultant noise). It’s not clear how the grid should be aligned exactly, and the metadata attributes list -180,180, -90,90 as the valid range but this can’t be correct at 0.01 degree resolution for that size grid).</p>
 <p>See the (ncdump -h listed below).</p>
@@ -219,15 +313,15 @@ DONE: expand file name</code></pre>
 </div>
 </div>
 <p>These points are the implicit pairs by expanding lon,lat from the file and compare what GDAL derives as the extent (red), and the vertical black lines is -180,180,-90,90. The hatched line is what we think should be assigned (an implicit missing row, split half at the top and bottom) - close enough to GDAL but with the longitude fixed and the extent made tidy (resolution 0.01, aligned to 0).</p>
-<section id="a-fix" class="level2">
-<h2 class="anchored" data-anchor-id="a-fix">A fix?</h2>
+<section id="a-fix" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="a-fix"><span class="header-section-number">3.1</span> A fix?</h2>
 <p>to fix all that up for a GDAL reader I do</p>
 <pre><code>'vrt://{ncsrc}?a_ullr=-180,89.995,180,-89.995&amp;a_srs=EPSG:4326&amp;a_offset=25&amp;a_scale=0.001&amp;sd_name=analysed_sst'</code></pre>
 <p>the a_scale/offset mean we get Celsius from the Int16 rather than Fahrenheit, the a_ullr fixes the regular extent and avoids all the numeric fuzz and redundancy of the lon,lat arrays, sd_name means we don’t need the ‘NETCDF:dsn:variable’ prefix:suffix stuff for the GDAL subdataset (but only since GDAL 3.9.0), and a_srs means we can churn through the warper for lovely new grids of any extent and dimension and crs we like.</p>
 <p>Another option would be to specify a target grid and let GDAL warp from the geolocation arrays.</p>
 </section>
-<section id="geolocation-arrays" class="level2">
-<h2 class="anchored" data-anchor-id="geolocation-arrays">Geolocation arrays</h2>
+<section id="geolocation-arrays" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="geolocation-arrays"><span class="header-section-number">3.2</span> Geolocation arrays</h2>
 <p>gdalinfo on the file reports</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span>(<span class="fu">sprintf</span>(<span class="st">"gdalinfo %s"</span>, ncsrc))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -396,8 +490,8 @@ variables:
         :_IsNetcdf4 = 1 ;
         :_Format = "netCDF-4" ;</code></pre>
 </section>
-<section id="demonstration-of-the-float32-precision-problem" class="level2">
-<h2 class="anchored" data-anchor-id="demonstration-of-the-float32-precision-problem">Demonstration of the Float32 precision problem</h2>
+<section id="demonstration-of-the-float32-precision-problem" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="demonstration-of-the-float32-precision-problem"><span class="header-section-number">3.3</span> Demonstration of the Float32 precision problem</h2>
 <p>Essentially floating point numbers struggle with precision for longitude and latitude (we might rescale closer to integers, but that’s tricky for metadata).</p>
 <p>to bring home the point about the single precision (I think this is right, appreciate if anyone points out a mistake or misunderstanding)</p>
 <p>Generate the coord values first in double precision, then in single (in R we have to return doubles, but the calc is done in float for the second one).</p>
@@ -459,7 +553,6 @@ variables:
 </div>
 
 
-</section>
 </section>
 
 </main> <!-- /main -->
@@ -696,6 +789,18 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./r-image.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">R and image</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./summary.html" class="pagination-link">
+        <span class="nav-page-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Summary</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
 </div> <!-- /content -->
 
 
