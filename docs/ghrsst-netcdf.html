@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>ghrsst-netcdf</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-search-results"></div>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+
+<section id="a-geospatial-dataset-in-netcdf" class="level1">
+<h1>A geospatial dataset in NetCDF</h1>
+<p>GHRSST is a high resolution globally-complete oceanographic dataset of sea surface temperature. It is strictly a 2d product, published daily since July 2002 and records temperature in Kelvin at the ocean surface, a blended product of observations, satellite data, and models. The dimension of the grid in pixels is 36000x17999. The storage format is NetCDF, with ‘time’ as an unlimited dimension recorded in the file - each file has a single 3D time step in the typical way that NetCDF includes and “UNLIMITED” dimension that will be appended to continually in future.</p>
+<p>GHRSST has a bit of a broken grid, the coordinates are degenerate rectilinear (i.e.&nbsp;completely described by the grid in xmin,xmax,ymin,ymax and the dimensions 36000x17999 but they store the longitude and latitude 1D coordinate arrays materalized as 32-bit floating point with resultant noise). It’s not clear how the grid should be aligned exactly, and the metadata attributes list -180,180, -90,90 as the valid range but this can’t be correct at 0.01 degree resolution for that size grid).</p>
+<p>See the (ncdump -h listed below).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="do">## replace this local file with the one at the new earthdata store commented out (but you need your earthdata creds, or Authorization Bearer token)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>ncsrc <span class="ot">&lt;-</span> <span class="st">"/rdsi/PUBLIC/raad/data/podaac-opendap.jpl.nasa.gov/opendap/allData/ghrsst/data/GDS2/L4/GLOB/JPL/MUR/v4.1/2002/152/20020601090000-JPL-L4_GHRSST-SSTfnd-MUR-GLOB-v02.0-fv04.1.nc"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="do">## https://cmr.earthdata.nasa.gov/virtual-directory/collections/C1996881146-POCLOUD/temporal/2002/05/31</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="do">## https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-protected/MUR-JPL-L4-GLOB-v4.1/20020601090000-JPL-L4_GHRSST-SSTfnd-MUR-GLOB-v02.0-fv04.1.nc</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="do">## read the lon,lat 1D arrays from the file (every file stores these 36000 lons and 17999 lats with ostensibly 0.01 spacing</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(RNetCDF)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>con <span class="ot">&lt;-</span> <span class="fu">open.nc</span>(ncsrc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>open the file
+expand file name
+DONE: expand file name</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>lat <span class="ot">&lt;-</span> <span class="fu">var.get.nc</span>(con, <span class="st">"lat"</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>lon <span class="ot">&lt;-</span> <span class="fu">var.get.nc</span>(con, <span class="st">"lon"</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">close.nc</span>(con)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="do">## weirdly right-edge aligned</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">range</span>(lon))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -179.99  180.00</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">## these are ok, but we miss half a cell from -90/90 (hence the 17999 thing, but why did they do that?)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">range</span>(lat))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -89.99  89.99</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="do">## there's noise in the values</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">diff</span>(lon), <span class="at">pch =</span> <span class="st">"."</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">format</span>(<span class="fu">range</span>(<span class="fu">diff</span>(lon)), <span class="at">digits =</span> <span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "0.0099945068359375" "0.0100097656250000"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="do">## and it's way more noise than in Float64</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(<span class="fu">diff</span>(fixlon <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="fl">179.995</span>, <span class="fl">179.995</span>, <span class="at">by =</span> <span class="fl">0.01</span>)), <span class="at">pch =</span> <span class="st">"."</span>,  <span class="at">col =</span> <span class="st">"red"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="ghrsst-netcdf_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">format</span>(<span class="fu">range</span>(<span class="fu">diff</span>(fixlon)), <span class="at">digits =</span> <span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "0.009999999999990905" "0.010000000000047748"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(fixlon); <span class="fu">length</span>(fixlon)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -179.995  179.995</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 36000</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>gdalex <span class="ot">&lt;-</span> vapour<span class="sc">::</span><span class="fu">vapour_raster_info</span>(<span class="fu">sprintf</span>(<span class="st">"NetCDF:%s:analysed_sst"</span>, ncsrc))<span class="sc">$</span>extent</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>fixex <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">180</span>, <span class="sc">-</span><span class="dv">180</span>, <span class="sc">-</span><span class="fl">89.995</span>, <span class="fl">89.995</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="do">## ewk</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="fu">format</span>(gdalex, <span class="at">digits =</span> <span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "-179.9950055" " 180.0050000" " -89.9949979" "  89.9949979"</code></pre>
+</div>
+</div>
+<p>Now we plot the points - see description above the figure.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>))</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="do">## UL --------------------------------------------------------------------------</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="cn">NA</span>, <span class="at">xlim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">180</span>, <span class="sc">-</span><span class="fl">179.95</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="fl">89.95</span>, <span class="dv">90</span>), <span class="at">asp =</span> <span class="dv">1</span>, <span class="at">xlab =</span> <span class="st">"lon"</span>, <span class="at">ylab =</span> <span class="st">"lat"</span>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">"UL: upper left"</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> <span class="sc">-</span><span class="dv">180</span>, <span class="at">h =</span> <span class="dv">90</span>)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> fixex[<span class="dv">3</span><span class="sc">:</span><span class="dv">4</span>], <span class="at">lty =</span>  <span class="dv">2</span>)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(<span class="fu">expand.grid</span>(<span class="fu">head</span>(lon), <span class="fu">tail</span>(lat)))</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>vaster<span class="sc">::</span><span class="fu">plot_extent</span>(gdalex, <span class="at">border =</span> <span class="st">"red"</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="do">## UR --------------------------------------------------------------------------</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="cn">NA</span>, <span class="at">xlim =</span> <span class="fu">c</span>(<span class="fl">179.95</span>, <span class="dv">180</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="fl">89.95</span>, <span class="dv">90</span>), <span class="at">asp =</span> <span class="dv">1</span>, <span class="at">xlab =</span> <span class="st">"lon"</span>, <span class="at">ylab =</span> <span class="st">"lat"</span>)</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">"UR: upper right"</span>)</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> <span class="dv">180</span>, <span class="at">h =</span> <span class="dv">90</span>)</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> fixex[<span class="dv">3</span><span class="sc">:</span><span class="dv">4</span>], <span class="at">lty =</span>  <span class="dv">2</span>)</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(<span class="fu">expand.grid</span>(<span class="fu">tail</span>(lon), <span class="fu">tail</span>(lat)))</span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>vaster<span class="sc">::</span><span class="fu">plot_extent</span>(gdalex, <span class="at">border =</span> <span class="st">"red"</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a><span class="do">## LL --------------------------------------------------------------------------</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="cn">NA</span>, <span class="at">xlim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">180</span>, <span class="sc">-</span><span class="fl">179.95</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">90</span>, <span class="sc">-</span><span class="fl">89.95</span>), <span class="at">asp =</span> <span class="dv">1</span>, <span class="at">xlab =</span> <span class="st">"lon"</span>, <span class="at">ylab =</span> <span class="st">"lat"</span>)</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">"LL: lower left"</span>)</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> <span class="sc">-</span><span class="dv">180</span>, <span class="at">h =</span> <span class="sc">-</span><span class="dv">90</span>)</span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> fixex[<span class="dv">3</span><span class="sc">:</span><span class="dv">4</span>], <span class="at">lty =</span>  <span class="dv">2</span>)</span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(<span class="fu">expand.grid</span>(<span class="fu">head</span>(lon), <span class="fu">head</span>(lat)))</span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>vaster<span class="sc">::</span><span class="fu">plot_extent</span>(gdalex, <span class="at">border =</span> <span class="st">"red"</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a><span class="do">## LR --------------------------------------------------------------------------</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="cn">NA</span>, <span class="at">xlim =</span> <span class="fu">c</span>(<span class="fl">179.95</span>, <span class="dv">180</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">90</span>, <span class="sc">-</span><span class="fl">89.95</span>), <span class="at">asp =</span> <span class="dv">1</span>, <span class="at">xlab =</span> <span class="st">"lon"</span>, <span class="at">ylab =</span> <span class="st">"lat"</span>)</span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> <span class="dv">180</span>, <span class="at">h =</span> <span class="sc">-</span><span class="dv">90</span>)</span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">"LR: lower right"</span>)</span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> fixex[<span class="dv">3</span><span class="sc">:</span><span class="dv">4</span>], <span class="at">lty =</span>  <span class="dv">2</span>)</span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(<span class="fu">expand.grid</span>(<span class="fu">tail</span>(lon), <span class="fu">head</span>(lat)))</span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>vaster<span class="sc">::</span><span class="fu">plot_extent</span>(gdalex, <span class="at">border =</span> <span class="st">"red"</span>, <span class="at">add =</span> <span class="cn">TRUE</span>, <span class="at">xlab =</span> <span class="st">"lon"</span>, <span class="at">ylab =</span> <span class="st">"lat"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="ghrsst-netcdf_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>These points are the implicit pairs by expanding lon,lat from the file and compare what GDAL derives as the extent (red), and the vertical black lines is -180,180,-90,90. The hatched line is what we think should be assigned (an implicit missing row, split half at the top and bottom) - close enough to GDAL but with the longitude fixed and the extent made tidy (resolution 0.01, aligned to 0).</p>
+<section id="a-fix" class="level2">
+<h2 class="anchored" data-anchor-id="a-fix">A fix?</h2>
+<p>to fix all that up for a GDAL reader I do</p>
+<pre><code>'vrt://{ncsrc}?a_ullr=-180,89.995,180,-89.995&amp;a_srs=EPSG:4326&amp;a_offset=25&amp;a_scale=0.001&amp;sd_name=analysed_sst'</code></pre>
+<p>the a_scale/offset mean we get Celsius from the Int16 rather than Fahrenheit, the a_ullr fixes the regular extent and avoids all the numeric fuzz and redundancy of the lon,lat arrays, sd_name means we don’t need the ‘NETCDF:dsn:variable’ prefix:suffix stuff for the GDAL subdataset (but only since GDAL 3.9.0), and a_srs means we can churn through the warper for lovely new grids of any extent and dimension and crs we like.</p>
+<p>Another option would be to specify a target grid and let GDAL warp from the geolocation arrays.</p>
+</section>
+<section id="geolocation-arrays" class="level2">
+<h2 class="anchored" data-anchor-id="geolocation-arrays">Geolocation arrays</h2>
+<p>gdalinfo on the file reports</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span>(<span class="fu">sprintf</span>(<span class="st">"gdalinfo %s"</span>, ncsrc))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The the GEOLOCATION section, it knows about those 1D arrays.</p>
+<p>So then we can do</p>
+<p>subdataset modify metadata specify grid and resample method</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system</span>(<span class="fu">sprintf</span>(<span class="st">"gdalwarp %s ghrsst.tif"</span>, nsrc))</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Netcdf summary</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><code>ncdump -sh</code></p>
+<pre><code>netcdf \20020601090000-JPL-L4_GHRSST-SSTfnd-MUR-GLOB-v02.0-fv04.1 {
+dimensions:
+    time = 1 ;
+    lat = 17999 ;
+    lon = 36000 ;
+variables:
+    int time(time) ;
+        time:long_name = "reference time of sst field" ;
+        time:standard_name = "time" ;
+        time:axis = "T" ;
+        time:units = "seconds since 1981-01-01 00:00:00 UTC" ;
+        time:comment = "Nominal time of analyzed fields" ;
+        time:_Storage = "contiguous" ;
+        time:_Endianness = "little" ;
+    float lat(lat) ;
+        lat:long_name = "latitude" ;
+        lat:standard_name = "latitude" ;
+        lat:axis = "Y" ;
+        lat:units = "degrees_north" ;
+        lat:valid_min = -90.f ;
+        lat:valid_max = 90.f ;
+        lat:comment = "none" ;
+        lat:_Storage = "chunked" ;
+        lat:_ChunkSizes = 17999 ;
+        lat:_DeflateLevel = 7 ;
+        lat:_Shuffle = "true" ;
+        lat:_Endianness = "little" ;
+    float lon(lon) ;
+        lon:long_name = "longitude" ;
+        lon:standard_name = "longitude" ;
+        lon:axis = "X" ;
+        lon:units = "degrees_east" ;
+        lon:valid_min = -180.f ;
+        lon:valid_max = 180.f ;
+        lon:comment = "none" ;
+        lon:_Storage = "chunked" ;
+        lon:_ChunkSizes = 36000 ;
+        lon:_DeflateLevel = 7 ;
+        lon:_Shuffle = "true" ;
+        lon:_Endianness = "little" ;
+    short analysed_sst(time, lat, lon) ;
+        analysed_sst:long_name = "analysed sea surface temperature" ;
+        analysed_sst:standard_name = "sea_surface_foundation_temperature" ;
+        analysed_sst:units = "kelvin" ;
+        analysed_sst:_FillValue = -32768s ;
+        analysed_sst:add_offset = 298.15 ;
+        analysed_sst:scale_factor = 0.001 ;
+        analysed_sst:valid_min = -32767s ;
+        analysed_sst:valid_max = 32767s ;
+        analysed_sst:comment = "\"Final\" version using Multi-Resolution Variational Analysis (MRVA) method for interpolation" ;
+        analysed_sst:coordinates = "lon lat" ;
+        analysed_sst:source = "AMSRE-REMSS, AVHRR_Pathfinder-PFV5.2-NODC_day, AVHRR_Pathfinder-PFV5.2-NODC_night, MODIS_T-JPL, iQUAM-NOAA/NESDIS, Ice_Conc-OSISAF" ;
+        analysed_sst:_Storage = "chunked" ;
+        analysed_sst:_ChunkSizes = 1, 1023, 2047 ;
+        analysed_sst:_DeflateLevel = 7 ;
+        analysed_sst:_Shuffle = "true" ;
+        analysed_sst:_Endianness = "little" ;
+    short analysis_error(time, lat, lon) ;
+        analysis_error:long_name = "estimated error standard deviation of analysed_sst" ;
+        analysis_error:units = "kelvin" ;
+        analysis_error:_FillValue = -32768s ;
+        analysis_error:add_offset = 0. ;
+        analysis_error:scale_factor = 0.01 ;
+        analysis_error:valid_min = 0s ;
+        analysis_error:valid_max = 32767s ;
+        analysis_error:comment = "none" ;
+        analysis_error:coordinates = "lon lat" ;
+        analysis_error:_Storage = "chunked" ;
+        analysis_error:_ChunkSizes = 1, 1023, 2047 ;
+        analysis_error:_DeflateLevel = 7 ;
+        analysis_error:_Shuffle = "true" ;
+        analysis_error:_Endianness = "little" ;
+    byte mask(time, lat, lon) ;
+        mask:long_name = "sea/land field composite mask" ;
+        mask:_FillValue = -128b ;
+        mask:valid_min = 1b ;
+        mask:valid_max = 31b ;
+        mask:flag_masks = 1b, 2b, 4b, 8b, 16b ;
+        mask:flag_values = 1b, 2b, 5b, 9b, 13b ;
+        mask:flag_meanings = "1=open-sea, 2=land, 5=open-lake, 9=open-sea with ice in the grid, 13=open-lake with ice in the grid" ;
+        mask:comment = "mask can be used to further filter the data." ;
+        mask:coordinates = "lon lat" ;
+        mask:source = "GMT \"grdlandmask\", ice flag from sea_ice_fraction data" ;
+        mask:_Storage = "chunked" ;
+        mask:_ChunkSizes = 1, 1447, 2895 ;
+        mask:_DeflateLevel = 7 ;
+        mask:_Shuffle = "true" ;
+    byte sea_ice_fraction(time, lat, lon) ;
+        sea_ice_fraction:long_name = "sea ice area fraction" ;
+        sea_ice_fraction:standard_name = "sea ice area fraction" ;
+        sea_ice_fraction:units = "fraction (between 0 and 1)" ;
+        sea_ice_fraction:_FillValue = -128b ;
+        sea_ice_fraction:add_offset = 0. ;
+        sea_ice_fraction:scale_factor = 0.01 ;
+        sea_ice_fraction:valid_min = 0b ;
+        sea_ice_fraction:valid_max = 100b ;
+        sea_ice_fraction:source = "EUMETSAT OSI-SAF, copyright EUMETSAT" ;
+        sea_ice_fraction:comment = "ice data interpolated by a nearest neighbor approach." ;
+        sea_ice_fraction:coordinates = "lon lat" ;
+        sea_ice_fraction:_Storage = "chunked" ;
+        sea_ice_fraction:_ChunkSizes = 1, 1447, 2895 ;
+        sea_ice_fraction:_DeflateLevel = 7 ;
+        sea_ice_fraction:_Shuffle = "true" ;
+
+// global attributes:
+        :Conventions = "CF-1.5" ;
+        :title = "Daily MUR SST, Final product" ;
+        :summary = "A merged, multi-sensor L4 Foundation SST analysis product from JPL." ;
+        :references = "http://podaac.jpl.nasa.gov/Multi-scale_Ultra-high_Resolution_MUR-SST" ;
+        :institution = "Jet Propulsion Laboratory" ;
+        :history = "created at nominal 4-day latency; replaced nrt (1-day latency) version." ;
+        :comment = "MUR = \"Multi-scale Ultra-high Reolution\"" ;
+        :license = "These data are available free of charge under data policy of JPL PO.DAAC." ;
+        :id = "MUR-JPL-L4-GLOB-v04.1" ;
+        :naming_authority = "org.ghrsst" ;
+        :product_version = "04.1" ;
+        :uuid = "27665bc0-d5fc-11e1-9b23-0800200c9a66" ;
+        :gds_version_id = "2.0" ;
+        :netcdf_version_id = "4.1" ;
+        :date_created = "20150819T103929Z" ;
+        :start_time = "20020601T090000Z" ;
+        :stop_time = "20020601T090000Z" ;
+        :time_coverage_start = "20020531T210000Z" ;
+        :time_coverage_end = "20020601T210000Z" ;
+        :file_quality_level = "1" ;
+        :source = "AMSRE-REMSS, AVHRR_Pathfinder-PFV5.2-NODC_day, AVHRR_Pathfinder-PFV5.2-NODC_night, MODIS_T-JPL, iQUAM-NOAA/NESDIS, Ice_Conc-OSISAF" ;
+        :platform = "Aqua, DMSP, NOAA-POES, Suomi-NPP, Terra" ;
+        :sensor = "AMSR-E, AVHRR, MODIS, SSM/I, VIIRS, in-situ" ;
+        :Metadata_Conventions = "Unidata Observation Dataset v1.0" ;
+        :metadata_link = "http://podaac.jpl.nasa.gov/ws/metadata/dataset/?format=iso&amp;shortName=MUR-JPL-L4-GLOB-v04.1" ;
+        :keywords = "Oceans &gt; Ocean Temperature &gt; Sea Surface Temperature" ;
+        :keywords_vocabulary = "NASA Global Change Master Directory (GCMD) Science Keywords" ;
+        :standard_name_vocabulary = "NetCDF Climate and Forecast (CF) Metadata Convention" ;
+        :southernmost_latitude = -90.f ;
+        :northernmost_latitude = 90.f ;
+        :westernmost_longitude = -180.f ;
+        :easternmost_longitude = 180.f ;
+        :spatial_resolution = "0.01 degrees" ;
+        :geospatial_lat_units = "degrees north" ;
+        :geospatial_lat_resolution = "0.01 degrees" ;
+        :geospatial_lon_units = "degrees east" ;
+        :geospatial_lon_resolution = "0.01 degrees" ;
+        :acknowledgment = "Please acknowledge the use of these data with the following statement:  These data were provided by JPL under support by NASA MEaSUREs program." ;
+        :creator_name = "JPL MUR SST project" ;
+        :creator_email = "ghrsst@podaac.jpl.nasa.gov" ;
+        :creator_url = "http://mur.jpl.nasa.gov" ;
+        :project = "NASA Making Earth Science Data Records for Use in Research Environments (MEaSUREs) Program" ;
+        :publisher_name = "GHRSST Project Office" ;
+        :publisher_url = "http://www.ghrsst.org" ;
+        :publisher_email = "ghrsst-po@nceo.ac.uk" ;
+        :processing_level = "L4" ;
+        :cdm_data_type = "grid" ;
+        :_SuperblockVersion = 2 ;
+        :_IsNetcdf4 = 1 ;
+        :_Format = "netCDF-4" ;</code></pre>
+</section>
+<section id="demonstration-of-the-float32-precision-problem" class="level2">
+<h2 class="anchored" data-anchor-id="demonstration-of-the-float32-precision-problem">Demonstration of the Float32 precision problem</h2>
+<p>Essentially floating point numbers struggle with precision for longitude and latitude (we might rescale closer to integers, but that’s tricky for metadata).</p>
+<p>to bring home the point about the single precision (I think this is right, appreciate if anyone points out a mistake or misunderstanding)</p>
+<p>Generate the coord values first in double precision, then in single (in R we have to return doubles, but the calc is done in float for the second one).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cpp11)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cpp_function</span>(<span class="st">'</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="st">doubles coord64(double start, int len, double step) {</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="st">   writable::doubles out = writable::doubles(len); </span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="st">   for (int i = 0; i &lt; len; i++) {</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="st">     out[i] = start + i * step; </span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="st">   }</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="st">   return out ;</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="st">}</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="st">             '</span>)</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(lon64 <span class="ot">&lt;-</span> <span class="fu">coord64</span>(<span class="sc">-</span><span class="fl">179.99</span>, <span class="dv">36000</span>, <span class="fl">0.01</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -179.99  180.00</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">format</span>(<span class="fu">range</span>(<span class="fu">diff</span>(lon64)), <span class="at">digits =</span> <span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "0.009999999999990905" "0.010000000000047748"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(lat64 <span class="ot">&lt;-</span> <span class="fu">coord64</span>(<span class="sc">-</span><span class="fl">89.99</span>, <span class="dv">17999</span>, <span class="fl">0.01</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -89.99  89.99</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">format</span>(<span class="fu">range</span>(<span class="fu">diff</span>(lat64)), <span class="at">digits =</span> <span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "0.009999999999990905" "0.010000000000019327"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cpp_function</span>(<span class="st">'</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="st">doubles coord32(float start, int len, float step) {</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="st">  writable::doubles out = writable::doubles(len); </span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="st">  for (int i = 0; i &lt; len; i++) {</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="st">    out[i] = start + i * step; </span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="st">  }</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="st">  return out ;</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="st">}</span></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a><span class="st">'</span>)</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(lon32 <span class="ot">&lt;-</span> <span class="fu">coord32</span>(<span class="sc">-</span><span class="fl">179.99</span>, <span class="dv">36000</span>, <span class="fl">0.01</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -179.99  180.00</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">format</span>(<span class="fu">range</span>(<span class="fu">diff</span>(lon32)), <span class="at">digits =</span> <span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "0.009979248046875" "0.010009765625000"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(lat32 <span class="ot">&lt;-</span> <span class="fu">coord32</span>(<span class="sc">-</span><span class="fl">89.99</span>, <span class="dv">17999</span>, <span class="fl">0.01</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -89.99  89.99</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">format</span>(<span class="fu">range</span>(<span class="fu">diff</span>(lat32)), <span class="at">digits =</span> <span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "0.0099945068359375" "0.0100097656250000"</code></pre>
+</div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
