@@ -11,6 +11,7 @@ book:
     - intro.qmd
     - r-image.qmd
     - ghrsst-netcdf.qmd
+    - grids.qmd
     - summary.qmd
     - references.qmd
 

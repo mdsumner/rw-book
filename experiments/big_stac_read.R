@@ -10,7 +10,7 @@
 # export GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES
 # export GDAL_NUM_THREADS=ALL_CPUS
 #
-system.time({
+#reprex::reprex({
 Sys.setenv(VSI_CACHE="TRUE")
 Sys.setenv(GDAL_CACHEMAX="30%")
 Sys.setenv(VSI_CACHE_SIZE="10000000")
@@ -74,14 +74,15 @@ sclfun <- function(src,  dim = c(1280, 0), ext = NULL, crs = NULL) {
   mm <- matrix(vis, ncol = 4)
   bad <- mm[,4] > 10
   out <- mm[,1:3]
-  if (any(bad)) out[bad,] <- NA
+  ab <- any(bad, na.rm = TRUE)
+  if (ab) out[bad,] <- NA
   keep <- rowSums(out, na.rm = TRUE) > 0
   tibble::tibble(cell = which(keep),
                  red = out[keep,1], green = out[keep, 2], blue = out[keep, 3])
 
 }
 
-
+## a quick look function
 ql <- function(x, dim = NULL) {
   if (!grepl("/vsicurl", x)) x <- sprintf("/vsicurl/%s", x)
   info <- vapour::vapour_raster_info(x)
@@ -95,17 +96,19 @@ ql <- function(x, dim = NULL) {
 #sds::stacit(c(176.1, 182.7, -20, -15), "2023")
 
 ex <- c(-64, -63.5, -9, -8.5) ## we might use a different grid for the output, but this is the query
+#ex <- c(147.2, 147.3, -42.9, -42.8)
+ex <- c(158.9, 158.97, -54.53, -54.49)
 
 ## this is Ryan's example comparing stackstac to odc-stac
 ## collection is sentinel-2-c1-l2a, if we use "sentinel-2-l2a" we have to use SCL not cloud
-qu <- sds::stacit(ex, date = "2020-01")
+qu <- sds::stacit(ex, date = "2020")
 
 ## get the hrefs (26 for Ryan's example, I think c1 has cleaned up overlap a bit)
 srcs <- hrefs(qu)
 
 ## specifying our output grid
 ext <- ex
-dm <- c(1280, 0)
+dm <- c(1684, 0)
 crs <- "EPSG:4326"
 
 ## we need a template, these might be different so we normalize upfront
@@ -118,7 +121,7 @@ library(parallel)
 n <- nrow(srcs)
 cl <- makeCluster(n.cpus <- min(c(64, n)))
 clusterExport(cl, "warpfun")
-system.time(d <- parLapply(cl, split(srcs, 1:nrow(srcs))[sample(n)], sclfun, ext = ext, crs = crs))
+d <- parLapply(cl, split(srcs, 1:nrow(srcs))[sample(n)], sclfun, ext = ext, crs = crs, dim = dm)
 
 stopCluster(cl)
 
@@ -127,13 +130,12 @@ library(dplyr)
 
 ## this is the slow part, takes 30 seconds
 library(multidplyr)
-system.time({
+
 cluster <- new_cluster(18)
 d <- bind_rows(d)
 res0 <- d %>%   group_by(cell) %>% partition(cluster) %>% summarize(red = median(red), green = median(green),
                                                                                blue = median(blue), n = dplyr::n()) %>% collect()
 rm(cluster)
-})
 
 
 dv <- range(unlist(res0[c("red", "green", "blue")]), na.rm = T)
@@ -157,14 +159,15 @@ ref[[3]][res$cell] <- as.integer(res$blue)
 
 #png("sentinel.png", width = attr(ref, "dimension")[1], height = attr(ref, "dimension")[2])
 par(mar = rep(0, 4))
-ximage(ref, asp = 1/cos(mean(ext[3:4]) * pi/180), axes = FALSE, xlab = "", ylab = "")
+asp <- 1/cos(mean(ext[3:4] * pi/180))
+ximage(ref, asp = asp, axes = FALSE, xlab = "", ylab = "")
 
 
 
 
-refmask <- ref
-refmask[[2]] <- refmask[[3]] <- NULL
-refmask[[1]][res$cell] <- res$n
-ximage(refmask, col = hcl.colors(12))
+# refmask <- ref
+# refmask[[2]] <- refmask[[3]] <- NULL
+# refmask[[1]][res$cell] <- res$n
+# ximage(refmask, col = hcl.colors(12), asp = asp)
 
-})
+
