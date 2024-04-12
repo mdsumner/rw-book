@@ -2,11 +2,15 @@
 
 Some grids are not actually rectilinear or curvilinear
 
+
 - a grid can present as rectilinear because of numeric precision 
 - a grid can present as curvilinear because of explicit storage of longlat arrays when the data was projected
+- other situations are possible
 
 
-I think that this leads to a family of cases that are all valid and desirable, but currently quite complicated to separate and access intentionally for various reasons atm. 
+NetCDF and xarray will by requirement present as rectilinear by expanding a regular to explicit centre-point coord arrays, this is described as *degenerate rectliinear*. Note that the R function `image()` uses this model to plot a regular grid, but `rasterImage()` uses a straight extent (+optional rotation). The rotation can be converted from the affine transform. 
+
+I think that this leads to a family of cases that are all valid and desirable, but currently quite complicated to separate and access intentionally for various reasons. 
 
 
 -(A) a non-georeferenced array   
@@ -24,6 +28,9 @@ I think that this leads to a family of cases that are all valid and desirable, b
 
 The xarray model. Everything is stored in rectilinear or curvilinear form explicitly. 
 
+What happens downstream in xarray is not something I have experience with, I don't know about regridding aspects there. To me this belongs upstream, the xarray model is perfectly suited to lazy processing of array data so it's about getting source data into a representable virtual array. 
+
+
 The GDAL model. If it's georeferenced it's B. If not georeferenced (or georferenced but still has coord arrays): 
 
 - non-georeferenced, positioned in affine transform with 1,0 values ( so upside down to normal)
@@ -31,5 +38,20 @@ The GDAL model. If it's georeferenced it's B. If not georeferenced (or georferen
 - actual curvilinear, every coordinate stored (very very usually longlat), covers also E because we can't tell
 - 
 
-All of these cases are subject to interpretation. We can assign a transform (or extent), we can assign rectilinear or curvlinear coords, we can assign GCPs, RPCs. With a coordinate model assigned, the trivial case is ready to go for RasteIO or warp, with other cases we can RasterIO but the geolcation model will be copied along. With Warp, we will resolve to a regular longlat grid (Atlantic or Pacific as per extent), or to any grid we choose. 
+All of these cases are subject to interpretation. We can assign a transform (or extent), we can assign rectilinear or curvlinear coords, we can assign GCPs, RPCs. Consider that two GCPs placed diagonally on an unferenced grid is enough to register an unreferenced regular grid, just relative pixel position converted to "world" coordinates by offset and scale.  With a coordinate model assigned, the trivial case is ready to go for RasteIO or warp, with other cases we can RasterIO but the geolcation model will be copied along. With Warp, we will resolve to a regular longlat grid (Atlantic or Pacific as per extent), or to any grid we choose. 
+
+## Example - unreferenced array
+
+This PNG image has a map of the world. We can assign the extent because we know what it is. 
+
+```{python}
+png = "https://github.com/cran/rgl/blob/master/inst/textures/worldsmall.png?raw=true"
+
+import rioxarray
+import rasterio
+ds = rasterio.open(f"/viscurl/{png}")
+
+
+
+```
 
