@@ -49,9 +49,28 @@ png = "https://github.com/cran/rgl/blob/master/inst/textures/worldsmall.png?raw=
 
 import rioxarray
 import rasterio
-ds = rasterio.open(f"/viscurl/{png}")
-
-
+ds = rasterio.open(f"/viscurl/{png}"
 
 ```
 
+A matrix data set on the internet, maybe volcano. 
+
+A matrix in Python, use DATAPOINTER - show the warp or RasterIO algorithms, we'll use this later. 
+
+## Example  - referenced dataset
+
+(All of the previous examples were made into referenced datasets). 
+
+Straightforward stuff, a Sentinel image, a tile server, a massive COG, a simple NetCDF. 
+
+## Example  - degenerate rectilinear
+
+Where does this cause problems. 
+
+- mistakes in plotdap
+
+
+## Example  - degenerate rectilinear from a projection
+
+The AVISO files - https://github.com/mdsumner/talks/blob/master/AAD_April2014/mercator1.png
+. 
