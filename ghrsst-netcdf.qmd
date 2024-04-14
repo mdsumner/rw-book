@@ -6,7 +6,9 @@ editor_options:
 
 # A geospatial dataset in NetCDF
 
-GHRSST is a high resolution globally-complete oceanographic dataset of sea surface temperature. It is strictly a 2d product, published daily since July 2002 and records temperature in Kelvin at the ocean surface, a blended product of observations, satellite data, and models. The dimension of the grid in pixels is 36000x17999. The storage format is NetCDF, with 'time' as an unlimited dimension recorded in the file - each file has a single 3D time step in the typical way that NetCDF includes and "UNLIMITED" dimension that will be appended to continually in future. 
+GHRSST is a high resolution globally-complete oceanographic dataset of sea surface temperature. It is strictly a 2D product, but implicity 3D (in time) as it is published daily since July 2002 and records temperature in Kelvin at the ocean surface, a blended product of observations, satellite data, and models. The dimension of the grid in pixels is 36000x17999. The storage format is NetCDF, with 'time' as an unlimited dimension recorded in the file - each file has a single 3D time step in the typical way that NetCDF includes and "UNLIMITED" dimension that will be appended to continually in future. 
+
+This seemingly minor detail contrasts with the previously discussed OISST, which has the same structure (2D daily grid) but each file has a "depth" dimension as well. Like time, in each file on its own the depth dimension is also degenerate, there is only one instance. These seemingly minor details affect software <maybe point to the rioxarray problem with band metatadata>. 
 
 GHRSST has a bit of a broken grid, the coordinates are degenerate rectilinear (i.e. completely described by the grid in xmin,xmax,ymin,ymax and the dimensions 36000x17999 but they store the longitude and latitude 1D coordinate arrays materalized as 32-bit floating point with resultant noise). It's not clear how the grid should be aligned exactly, and the metadata attributes list -180,180, -90,90 as the valid range but this can't be correct at 0.01 degree resolution for that size grid). 
 

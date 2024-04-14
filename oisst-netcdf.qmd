@@ -1,0 +1,13 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Low resolution daily sea surface temperature
+
+OISST
+
+tidync blog post
+
+Strictly a regular grid. 
