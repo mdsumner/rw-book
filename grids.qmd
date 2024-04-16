@@ -38,9 +38,17 @@ The GDAL model. If it's georeferenced it's B. If not georeferenced (or georferen
 - actual curvilinear, every coordinate stored (very very usually longlat), covers also E because we can't tell
 - 
 
-All of these cases are subject to interpretation. We can assign a transform (or extent), we can assign rectilinear or curvlinear coords, we can assign GCPs, RPCs. Consider that two GCPs placed diagonally on an unferenced grid is enough to register an unreferenced regular grid, just relative pixel position converted to "world" coordinates by offset and scale.  With a coordinate model assigned, the trivial case is ready to go for RasteIO or warp, with other cases we can RasterIO but the geolcation model will be copied along. With Warp, we will resolve to a regular longlat grid (Atlantic or Pacific as per extent), or to any grid we choose. 
+All of these cases are subject to interpretation. We can assign a transform (or extent), we can assign rectilinear or curvlinear coords, we can assign GCPs, RPCs. Consider that two GCPs placed diagonally on an unferenced grid is enough to register an unreferenced regular grid, just relative pixel position converted to "world" coordinates by offset and scale.  With a coordinate model assigned, the trivial case is ready to go for RasteIO or warp, with other cases we can RasterIO but the geolocation model will be copied along. With Warp, we will resolve to a regular longlat grid (Atlantic or Pacific as per extent), or to any grid we choose. 
 
 ## Example - unreferenced array
+
+A matrix data set on the internet, maybe volcano. 
+
+A matrix in Python, use DATAPOINTER - show the warp or RasterIO algorithms, we'll use this later. 
+
+
+
+## Example - unreferenced image
 
 This PNG image has a map of the world. We can assign the extent because we know what it is. 
 
@@ -53,9 +61,6 @@ ds = rasterio.open(f"/viscurl/{png}"
 
 ```
 
-A matrix data set on the internet, maybe volcano. 
-
-A matrix in Python, use DATAPOINTER - show the warp or RasterIO algorithms, we'll use this later. 
 
 ## Example  - referenced dataset
 
