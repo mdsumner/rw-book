@@ -50,14 +50,15 @@ A matrix in Python, use DATAPOINTER - show the warp or RasterIO algorithms, we'l
 
 ## Example - unreferenced image
 
-This PNG image has a map of the world. We can assign the extent because we know what it is. 
+This PNG image has a map of the world. We can assign the extent because we know what it is, but note 
+we also use the VRT argument 'expand' to ensure we get explicit RGB values, not an index and palette. 
 
 ```{python}
-png = "https://github.com/cran/rgl/blob/master/inst/textures/worldsmall.png?raw=true"
+png = "https://github.com/cran/rgl/raw/master/inst/textures/worldsmall.png"
 
 import rioxarray
 import rasterio
-ds = rasterio.open(f"/viscurl/{png}"
+ds = rasterio.open(f"/viscurl/{png}?a_ullr=-180,90,180,-90&expand=rgb"
 
 ```
 
